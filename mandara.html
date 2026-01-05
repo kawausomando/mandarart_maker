@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Mandalart Maker</title>
+    <style>
+      :root {
+        --bg: #0b0f17;
+        --panel: #111827;
+        --ink: #e5e7eb;
+        --muted: #94a3b8;
+        --line: rgba(148, 163, 184, 0.25);
+        --line2: rgba(148, 163, 184, 0.45);
+        --accent: #60a5fa;
+        --accent2: #34d399;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+        background: radial-gradient(
+            1200px 900px at 20% 0%,
+            rgba(96, 165, 250, 0.18),
+            transparent 55%
+          ),
+          radial-gradient(
+            1200px 900px at 80% 10%,
+            rgba(52, 211, 153, 0.12),
+            transparent 55%
+          ),
+          var(--bg);
+        color: var(--ink);
+      }
+      header {
+        padding: 18px 18px 10px;
+        display: flex;
+        gap: 14px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+      }
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 12px;
+        margin-left: 2px;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 18px 22px;
+      }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        background: rgba(17, 24, 39, 0.7);
+        border: 1px solid var(--line);
+        padding: 12px;
+        border-radius: 14px;
+        backdrop-filter: blur(8px);
+      }
+      button,
+      .fileBtn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--ink);
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 13px;
+        line-height: 1;
+        transition: 0.15s transform, 0.15s border, 0.15s background;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      button:hover,
+      .fileBtn:hover {
+        border-color: var(--line2);
+        background: rgba(255, 255, 255, 0.06);
+      }
+      button:active,
+      .fileBtn:active {
+        transform: translateY(1px);
+      }
+      .primary {
+        border-color: rgba(96, 165, 250, 0.45);
+        background: rgba(96, 165, 250, 0.12);
+      }
+      .primary:hover {
+        border-color: rgba(96, 165, 250, 0.75);
+        background: rgba(96, 165, 250, 0.16);
+      }
+      .danger {
+        border-color: rgba(248, 113, 113, 0.45);
+        background: rgba(248, 113, 113, 0.1);
+      }
+      .danger:hover {
+        border-color: rgba(248, 113, 113, 0.7);
+        background: rgba(248, 113, 113, 0.14);
+      }
+      .ok {
+        border-color: rgba(52, 211, 153, 0.45);
+        background: rgba(52, 211, 153, 0.1);
+      }
+      .ok:hover {
+        border-color: rgba(52, 211, 153, 0.7);
+        background: rgba(52, 211, 153, 0.14);
+      }
+      .pill {
+        font-size: 12px;
+        color: var(--muted);
+        padding: 8px 10px;
+        border: 1px dashed var(--line);
+        border-radius: 999px;
+      }
+      input[type="text"] {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        color: var(--ink);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        outline: none;
+        min-width: 220px;
+      }
+      input[type="text"]:focus {
+        border-color: rgba(96, 165, 250, 0.6);
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+      }
+      .gridWrap {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+        background: rgba(17, 24, 39, 0.55);
+        border: 1px solid var(--line);
+        padding: 12px;
+        border-radius: 14px;
+      }
+      .boardCard {
+        background: rgba(17, 24, 39, 0.7);
+        border: 1px solid var(--line);
+        padding: 14px;
+        border-radius: 18px;
+        backdrop-filter: blur(8px);
+        overflow: auto;
+      }
+      /* board (9x9) */
+      .board {
+        width: min(900px, 100%);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(9, 1fr);
+        gap: 0;
+        border: 2px solid rgba(229, 231, 235, 0.35);
+        border-radius: 14px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .cell {
+        min-height: 86px;
+        border-right: 1px solid rgba(229, 231, 235, 0.16);
+        border-bottom: 1px solid rgba(229, 231, 235, 0.16);
+        padding: 10px 10px 12px;
+        position: relative;
+        background: rgba(255, 255, 255, 0.01);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .cell:nth-child(9n) {
+        border-right: none;
+      }
+      .cell:nth-last-child(-n + 9) {
+        border-bottom: none;
+      }
+      .cell textarea {
+        width: 100%;
+        height: 100%;
+        resize: none;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.35;
+        min-height: 58px;
+      }
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        color: rgba(229, 231, 235, 0.65);
+        font-size: 10px;
+        user-select: none;
+      }
+      .tag {
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        color: rgba(148, 163, 184, 0.9);
+        background: rgba(148, 163, 184, 0.06);
+        white-space: nowrap;
+      }
+      /* 3x3 blocks separators */
+      .vSep {
+        box-shadow: inset -2px 0 0 rgba(229, 231, 235, 0.28);
+      }
+      .hSep {
+        box-shadow: inset 0 -2px 0 rgba(229, 231, 235, 0.28);
+      }
+      .center {
+        background: radial-gradient(
+            800px 400px at 50% 0%,
+            rgba(96, 165, 250, 0.2),
+            transparent 65%
+          ),
+          rgba(96, 165, 250, 0.06);
+      }
+      .theme {
+        border-color: rgba(96, 165, 250, 0.55) !important;
+        background: radial-gradient(
+            800px 400px at 50% 0%,
+            rgba(96, 165, 250, 0.24),
+            transparent 65%
+          ),
+          rgba(96, 165, 250, 0.08);
+      }
+      .element {
+        background: rgba(52, 211, 153, 0.05);
+      }
+
+      .footerRow {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        align-items: center;
+      }
+      .kbd {
+        border: 1px solid var(--line);
+        padding: 2px 7px;
+        border-radius: 8px;
+        font-size: 11px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1>Mandalart Maker</h1>
+          <div class="sub">
+            9×9のマンダラート作成ツールです。
+          </div>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <input id="title" type="text" placeholder="シート名（例：2026目標）" />
+        <button class="primary" id="btnPng">PNG書き出し</button>
+        <button class="ok" id="btnCopyJson">JSONコピー</button>
+
+        <label class="fileBtn" for="jsonFile">
+          JSON読み込み
+          <input
+            id="jsonFile"
+            class="hidden"
+            type="file"
+            accept="application/json"
+          />
+        </label>
+
+        <button id="btnDownloadJson">JSON保存</button>
+        <button class="danger" id="btnClear">全部クリア</button>
+        <button id="btnTemplate">テンプレ投入</button>
+
+        <span class="pill" id="autosaveState">自動保存: ON</span>
+      </div>
+
+      <div class="gridWrap">
+        <div class="boardCard">
+          <div id="board" class="board" aria-label="mandalart board"></div>
+          <div class="footerRow">
+            <div>
+              💡Hint: 中央→周囲8マス→外周（行動）で埋める。
+            </div>
+            <div>
+              ショートカット: <span class="kbd">Tab</span> 次 /
+              <span class="kbd">Shift</span>+<span class="kbd">Tab</span> 前
+            </div>
+          </div>
+        </div>
+
+        <div class="hint">
+          <b>使い方ざっくり</b><br />
+          ① 中央（テーマ）を書く → ② その周囲8マス（要素）を書く → ③
+          外側の各3×3の中心は要素が自動反映されるので、残り8マスに行動案を書く。<br />
+          ※「要素（周囲8マス）」を外側ブロックの中心に<strong>自動同期</strong>します。
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ===== Mandalart mapping =====
+      // 9x9 = 3x3 blocks. Center block (block 1,1) has theme in its center (4,4).
+      // The 8 "elements" are the 8 cells around theme inside the center 3x3 block.
+      // Each element syncs to the center cell of its corresponding outer block.
+      //
+      // Coordinates: r,c in [0..8]
+      // Center block ranges r 3..5, c 3..5
+      // Theme: (4,4)
+      // Elements in center block around theme:
+      //   NW (3,3), N (3,4), NE (3,5),
+      //   W  (4,3),        E  (4,5),
+      //   SW (5,3), S (5,4), SE (5,5)
+      //
+      // Outer block centers (each block center):
+      // block (br,bc) in {0,1,2} -> center cell: (br*3+1, bc*3+1)
+      // Map element direction to outer block:
+      //   NW -> (0,0) center (1,1)
+      //   N  -> (0,1) center (1,4)
+      //   NE -> (0,2) center (1,7)
+      //   W  -> (1,0) center (4,1)
+      //   E  -> (1,2) center (4,7)
+      //   SW -> (2,0) center (7,1)
+      //   S  -> (2,1) center (7,4)
+      //   SE -> (2,2) center (7,7)
+
+      const LS_KEY = "mandalart_v1";
+      const LS_TITLE_KEY = "mandalart_title_v1";
+
+      const boardEl = document.getElementById("board");
+      const titleEl = document.getElementById("title");
+      const autosaveStateEl = document.getElementById("autosaveState");
+
+      const btnPng = document.getElementById("btnPng");
+      const btnCopyJson = document.getElementById("btnCopyJson");
+      const btnDownloadJson = document.getElementById("btnDownloadJson");
+      const btnClear = document.getElementById("btnClear");
+      const btnTemplate = document.getElementById("btnTemplate");
+      const jsonFile = document.getElementById("jsonFile");
+
+      const idx = (r, c) => r * 9 + c;
+
+      const THEME = { r: 4, c: 4 };
+      const ELEMENTS = [
+        { key: "NW", r: 3, c: 3, out: { r: 1, c: 1 }, label: "要素 NW" },
+        { key: "N", r: 3, c: 4, out: { r: 1, c: 4 }, label: "要素 N" },
+        { key: "NE", r: 3, c: 5, out: { r: 1, c: 7 }, label: "要素 NE" },
+        { key: "W", r: 4, c: 3, out: { r: 4, c: 1 }, label: "要素 W" },
+        { key: "E", r: 4, c: 5, out: { r: 4, c: 7 }, label: "要素 E" },
+        { key: "SW", r: 5, c: 3, out: { r: 7, c: 1 }, label: "要素 SW" },
+        { key: "S", r: 5, c: 4, out: { r: 7, c: 4 }, label: "要素 S" },
+        { key: "SE", r: 5, c: 5, out: { r: 7, c: 7 }, label: "要素 SE" },
+      ];
+
+      // data model: 81 strings
+      let data = Array.from({ length: 81 }, () => "");
+
+      function isThemeCell(r, c) {
+        return r === THEME.r && c === THEME.c;
+      }
+      function isElementCell(r, c) {
+        return ELEMENTS.some((e) => e.r === r && e.c === c);
+      }
+      function isSyncedOuterCenter(r, c) {
+        return ELEMENTS.some((e) => e.out.r === r && e.out.c === c);
+      }
+
+      function cellClass(r, c) {
+        let cls = "cell";
+        // 3x3 separators
+        if (c === 2 || c === 5) cls += " vSep";
+        if (r === 2 || r === 5) cls += " hSep";
+        if (isThemeCell(r, c)) cls += " theme";
+        else if (isElementCell(r, c)) cls += " element";
+        else if (r >= 3 && r <= 5 && c >= 3 && c <= 5) cls += " center";
+        return cls;
+      }
+
+      function metaTag(r, c) {
+        if (isThemeCell(r, c)) return "テーマ";
+        const el = ELEMENTS.find((e) => e.r === r && e.c === c);
+        if (el) return "要素";
+        const out = ELEMENTS.find((e) => e.out.r === r && e.out.c === c);
+        if (out) return "要素(同期)";
+        return "";
+      }
+
+      function buildBoard() {
+        boardEl.innerHTML = "";
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const wrap = document.createElement("div");
+            wrap.className = cellClass(r, c);
+
+            const meta = document.createElement("div");
+            meta.className = "meta";
+            const tag = document.createElement("span");
+            tag.className = "tag";
+            tag.textContent = metaTag(r, c) || `(${r + 1},${c + 1})`;
+            const counter = document.createElement("span");
+            counter.textContent = "";
+            meta.appendChild(tag);
+            meta.appendChild(counter);
+
+            const ta = document.createElement("textarea");
+            ta.value = data[idx(r, c)] || "";
+            ta.placeholder = isThemeCell(r, c)
+              ? "テーマ（最終目標）"
+              : isElementCell(r, c)
+              ? "要素（8つ）"
+              : isSyncedOuterCenter(r, c)
+              ? "※ここは要素から自動同期"
+              : "行動 / アイデア";
+
+            // synced outer centers are read-only (to avoid mismatch)
+            if (isSyncedOuterCenter(r, c)) {
+              ta.readOnly = true;
+              ta.style.opacity = "0.95";
+            }
+
+            // live counter (rough)
+            const updateCounter = () => {
+              const t = ta.value.trim();
+              counter.textContent = t ? `${t.length}字` : "";
+            };
+            updateCounter();
+
+            ta.addEventListener("input", () => {
+              // update model
+              data[idx(r, c)] = ta.value;
+              updateCounter();
+
+              // sync elements -> outer centers
+              const el = ELEMENTS.find((e) => e.r === r && e.c === c);
+              if (el) {
+                const v = ta.value;
+                data[idx(el.out.r, el.out.c)] = v;
+                const outTa = document.querySelector(
+                  `textarea[data-rc="${el.out.r},${el.out.c}"]`
+                );
+                if (outTa) outTa.value = v;
+              }
+
+              // autosave
+              saveToLocal();
+            });
+
+            // keyboard nav: Tab focuses next textarea naturally, but keep stable
+            ta.dataset.rc = `${r},${c}`;
+
+            wrap.appendChild(meta);
+            wrap.appendChild(ta);
+            boardEl.appendChild(wrap);
+          }
+        }
+      }
+
+      function saveToLocal() {
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify({ version: 1, data }));
+          localStorage.setItem(LS_TITLE_KEY, titleEl.value || "");
+          autosaveStateEl.textContent = "自動保存: ON";
+        } catch (e) {
+          autosaveStateEl.textContent = "自動保存: 失敗（容量？）";
+        }
+      }
+
+      function loadFromLocal() {
+        try {
+          const raw = localStorage.getItem(LS_KEY);
+          const t = localStorage.getItem(LS_TITLE_KEY);
+          if (t) titleEl.value = t;
+
+          if (!raw) return;
+          const obj = JSON.parse(raw);
+          if (obj && Array.isArray(obj.data) && obj.data.length === 81) {
+            data = obj.data.map((x) => (typeof x === "string" ? x : ""));
+            // re-apply sync rule (elements overwrite outer centers)
+            ELEMENTS.forEach(
+              (e) => (data[idx(e.out.r, e.out.c)] = data[idx(e.r, e.c)] || "")
+            );
+          }
+        } catch (_) {}
+      }
+
+      function clearAll() {
+        data = Array.from({ length: 81 }, () => "");
+        buildBoard();
+        saveToLocal();
+      }
+
+      function applyTemplate() {
+        // a simple, usable template
+        clearAll();
+        titleEl.value = "マンダラート（テンプレ）";
+
+        data[idx(4, 4)] = "目標（テーマ）";
+        const elementTexts = [
+          "習慣",
+          "スキル",
+          "健康",
+          "発信",
+          "制作",
+          "環境",
+          "人脈",
+          "お金",
+        ];
+        const order = ["NW", "N", "NE", "W", "E", "SW", "S", "SE"];
+        order.forEach((k, i) => {
+          const e = ELEMENTS.find((x) => x.key === k);
+          data[idx(e.r, e.c)] = elementTexts[i];
+          data[idx(e.out.r, e.out.c)] = elementTexts[i]; // sync
+        });
+
+        // sprinkle some actions
+        // top middle block (N): center (1,4) is "スキル" => around it actions
+        const set = (r, c, v) => (data[idx(r, c)] = v);
+        set(0, 3, "毎日15分");
+        set(0, 4, "小さく継続");
+        set(0, 5, "復習");
+        set(1, 3, "教材1つ");
+        set(1, 5, "アウトプット");
+        set(2, 3, "週レビュー");
+        set(2, 4, "課題分解");
+        set(2, 5, "記録");
+
+        buildBoard();
+        saveToLocal();
+      }
+
+      function exportJson() {
+        return JSON.stringify(
+          {
+            version: 1,
+            title: titleEl.value || "",
+            data,
+          },
+          null,
+          2
+        );
+      }
+
+      async function copyJson() {
+        try {
+          await navigator.clipboard.writeText(exportJson());
+          toast("JSONコピーした");
+        } catch (e) {
+          toast("コピー失敗。ブラウザ権限まわりかも");
+        }
+      }
+
+      function downloadJson() {
+        const blob = new Blob([exportJson()], { type: "application/json" });
+        const a = document.createElement("a");
+        const name = (titleEl.value || "mandalart") + ".json";
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      function readJsonFile(file) {
+        const fr = new FileReader();
+        fr.onload = () => {
+          try {
+            const obj = JSON.parse(fr.result);
+            if (!obj || !Array.isArray(obj.data) || obj.data.length !== 81)
+              throw new Error("format");
+            data = obj.data.map((x) => (typeof x === "string" ? x : ""));
+            titleEl.value =
+              typeof obj.title === "string" ? obj.title : titleEl.value || "";
+            // enforce sync rule
+            ELEMENTS.forEach(
+              (e) => (data[idx(e.out.r, e.out.c)] = data[idx(e.r, e.c)] || "")
+            );
+            buildBoard();
+            saveToLocal();
+            toast("JSON読み込んだ");
+          } catch (e) {
+            toast("JSONの形式が違うっぽい");
+          }
+        };
+        fr.readAsText(file);
+      }
+
+      // PNG export (no external libs): render DOM to canvas using SVG foreignObject trick
+      async function exportPng() {
+        // ==== settings ====
+        const W = 1400;
+        const H = 1500;
+        const pad = 60;
+        const titleH = 80;
+
+        const bg = "#0b0f17";
+        const fg = "#e5e7eb";
+        const muted = "#94a3b8";
+        const grid = "rgba(229,231,235,.22)";
+        const gridBold = "rgba(229,231,235,.42)";
+
+        const cellW = (W - pad * 2) / 9;
+        const cellH = (H - pad * 2 - titleH) / 9;
+
+        const title = (titleEl.value || "mandalart").replace(
+          /[\\/:*?"<>|]/g,
+          "_"
+        );
+
+        // ==== build canvas ====
+        const canvas = document.createElement("canvas");
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext("2d");
+
+        // background
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // title
+        ctx.fillStyle = fg;
+        ctx.font =
+          "700 34px system-ui, -apple-system, Segoe UI, Roboto, Hiragino Sans, Noto Sans JP, Yu Gothic, sans-serif";
+        ctx.textBaseline = "top";
+        ctx.fillText(titleEl.value || "Mandalart", pad, pad);
+
+        ctx.fillStyle = muted;
+        ctx.font =
+          "400 18px system-ui, -apple-system, Segoe UI, Roboto, Hiragino Sans, Noto Sans JP, Yu Gothic, sans-serif";
+        ctx.fillText(new Date().toLocaleString("ja-JP"), pad, pad + 44);
+
+        const startX = pad;
+        const startY = pad + titleH;
+
+        // helper: wrap text
+        function wrapLines(text, maxWidth) {
+          const lines = [];
+          const paras = String(text || "").split("\n");
+          for (const p of paras) {
+            let line = "";
+            for (const ch of p) {
+              const test = line + ch;
+              if (ctx.measureText(test).width > maxWidth && line) {
+                lines.push(line);
+                line = ch;
+              } else {
+                line = test;
+              }
+            }
+            if (line) lines.push(line);
+            // keep blank line separation lightly
+            if (p === "") lines.push("");
+          }
+          return lines;
+        }
+
+        function cellBg(r, c) {
+          // theme (4,4)
+          if (r === 4 && c === 4) return "rgba(96,165,250,.14)";
+          // center 3x3
+          if (r >= 3 && r <= 5 && c >= 3 && c <= 5)
+            return "rgba(96,165,250,.06)";
+          // element cells in center block around theme
+          const isElement = ELEMENTS.some((e) => e.r === r && e.c === c);
+          if (isElement) return "rgba(52,211,153,.08)";
+          // synced outer centers
+          const isSynced = ELEMENTS.some((e) => e.out.r === r && e.out.c === c);
+          if (isSynced) return "rgba(52,211,153,.05)";
+          return "rgba(255,255,255,.01)";
+        }
+
+        // draw cells + text
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const x = startX + c * cellW;
+            const y = startY + r * cellH;
+
+            // cell background
+            ctx.fillStyle = cellBg(r, c);
+            ctx.fillRect(x, y, cellW, cellH);
+
+            // border lines
+            ctx.strokeStyle = grid;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, cellW, cellH);
+
+            // thicker separators for 3x3 blocks
+            if (c === 2 || c === 5) {
+              ctx.strokeStyle = gridBold;
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.moveTo(x + cellW, y);
+              ctx.lineTo(x + cellW, y + cellH);
+              ctx.stroke();
+            }
+            if (r === 2 || r === 5) {
+              ctx.strokeStyle = gridBold;
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.moveTo(x, y + cellH);
+              ctx.lineTo(x + cellW, y + cellH);
+              ctx.stroke();
+            }
+
+            // text
+            const text = data[idx(r, c)] || "";
+            if (text.trim()) {
+              const innerPad = 10;
+              const maxW = cellW - innerPad * 2;
+              const maxH = cellH - innerPad * 2;
+
+              ctx.fillStyle = fg;
+              ctx.font =
+                "400 18px system-ui, -apple-system, Segoe UI, Roboto, Hiragino Sans, Noto Sans JP, Yu Gothic, sans-serif";
+              ctx.textBaseline = "top";
+
+              const lines = wrapLines(text, maxW);
+              const lineH = 22;
+              let yy = y + innerPad;
+
+              for (const line of lines) {
+                if (yy + lineH > y + innerPad + maxH) break;
+                ctx.fillText(line, x + innerPad, yy);
+                yy += lineH;
+              }
+            }
+          }
+        }
+
+        // outer border
+        ctx.strokeStyle = gridBold;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(startX, startY, cellW * 9, cellH * 9);
+
+        // download
+        canvas.toBlob((pngBlob) => {
+          if (!pngBlob) {
+            toast("PNG生成に失敗した…");
+            return;
+          }
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(pngBlob);
+          a.download = `${title}.png`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          toast("PNG書き出した");
+        }, "image/png");
+      }
+
+      // tiny toast
+      let toastTimer = null;
+      function toast(msg) {
+        let el = document.getElementById("toast");
+        if (!el) {
+          el = document.createElement("div");
+          el.id = "toast";
+          el.style.position = "fixed";
+          el.style.left = "50%";
+          el.style.bottom = "22px";
+          el.style.transform = "translateX(-50%)";
+          el.style.background = "rgba(17,24,39,.92)";
+          el.style.border = "1px solid rgba(148,163,184,.28)";
+          el.style.color = "#e5e7eb";
+          el.style.padding = "10px 12px";
+          el.style.borderRadius = "999px";
+          el.style.fontSize = "13px";
+          el.style.backdropFilter = "blur(8px)";
+          el.style.zIndex = "9999";
+          document.body.appendChild(el);
+        }
+        el.textContent = msg;
+        el.style.opacity = "1";
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          el.style.opacity = "0";
+        }, 1400);
+      }
+
+      // events
+      titleEl.addEventListener("input", saveToLocal);
+      btnClear.addEventListener("click", () => {
+        if (confirm("全部消す？（戻せないよ）")) clearAll();
+      });
+      btnTemplate.addEventListener("click", applyTemplate);
+      btnCopyJson.addEventListener("click", copyJson);
+      btnDownloadJson.addEventListener("click", downloadJson);
+      btnPng.addEventListener("click", exportPng);
+
+      jsonFile.addEventListener("change", (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (f) readJsonFile(f);
+        e.target.value = "";
+      });
+
+      // init
+      loadFromLocal();
+      // enforce sync on load
+      ELEMENTS.forEach(
+        (e) => (data[idx(e.out.r, e.out.c)] = data[idx(e.r, e.c)] || "")
+      );
+      buildBoard();
+      saveToLocal();
+    </script>
+  </body>
+</html>
